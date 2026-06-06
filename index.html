@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Yes or No</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #fff9f4;
+      --panel: #ffffff;
+      --ink: #3f3650;
+      --muted: #8a8198;
+      --line: rgba(63, 54, 80, 0.09);
+      --yes: #3da86a;
+      --yes-soft: #e5f7ec;
+      --no: #e06386;
+      --no-soft: #fdebf1;
+      --peach: #ffb089;
+      --peach-soft: #fff0e8;
+      --radius: 24px;
+      --shadow: 0 18px 50px rgba(63, 54, 80, 0.08);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #17141f;
+        --panel: #221e2c;
+        --ink: #f5f1fa;
+        --muted: #a89eb5;
+        --line: rgba(245, 241, 250, 0.1);
+        --yes-soft: rgba(61, 168, 106, 0.15);
+        --no-soft: rgba(224, 99, 134, 0.15);
+        --peach-soft: rgba(255, 176, 137, 0.12);
+        --shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+      }
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      height: 100%;
+    }
+
+    body {
+      font-family: "Figtree", system-ui, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      overflow-x: hidden;
+      transition: background 0.45s ease;
+    }
+
+    body.mood-yes {
+      background: color-mix(in srgb, var(--bg) 90%, var(--yes-soft));
+    }
+
+    body.mood-no {
+      background: color-mix(in srgb, var(--bg) 90%, var(--no-soft));
+    }
+
+    .app {
+      min-height: 100dvh;
+      display: grid;
+      place-items: center;
+      padding: clamp(1rem, 4vw, 2rem);
+    }
+
+    .panel {
+      width: min(100%, 420px);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1.25rem 1.25rem 1.1rem;
+      display: grid;
+      gap: 1rem;
+    }
+
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0.75rem;
+    }
+
+    .title {
+      font-family: "M PLUS Rounded 1c", sans-serif;
+      font-size: clamp(1.5rem, 5vw, 1.85rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.05;
+    }
+
+    .subtitle {
+      margin-top: 0.35rem;
+      font-size: 0.9rem;
+      color: var(--muted);
+      line-height: 1.45;
+      max-width: 24ch;
+    }
+
+    .flip-count {
+      font-family: "M PLUS Rounded 1c", sans-serif;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--muted);
+      background: var(--peach-soft);
+      border: 1px solid color-mix(in srgb, var(--peach) 25%, transparent);
+      border-radius: 999px;
+      padding: 0.35rem 0.65rem;
+      opacity: 0;
+      transition: opacity 0.25s ease;
+      white-space: nowrap;
+    }
+
+    .running .flip-count,
+    .finished .flip-count {
+      opacity: 1;
+    }
+
+    .stage {
+      display: grid;
+      justify-items: center;
+      gap: 0.65rem;
+    }
+
+    .buddy-wrap {
+      display: grid;
+      justify-items: center;
+      gap: 0.55rem;
+    }
+
+    .buddy {
+      width: 52px;
+      height: 44px;
+      background: var(--peach-soft);
+      border: 2px solid color-mix(in srgb, var(--peach) 35%, transparent);
+      border-radius: 50% 50% 46% 46%;
+      position: relative;
+      transition: transform 0.25s ease, background 0.25s ease, border-color 0.25s ease;
+    }
+
+    .buddy::before,
+    .buddy::after {
+      content: "";
+      position: absolute;
+      top: 14px;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--ink);
+      transition: transform 0.12s ease;
+    }
+
+    .buddy::before { left: 13px; }
+    .buddy::after { right: 13px; }
+
+    .buddy-smile {
+      position: absolute;
+      left: 50%;
+      bottom: 10px;
+      width: 14px;
+      height: 7px;
+      margin-left: -7px;
+      border: 2px solid var(--ink);
+      border-top: none;
+      border-radius: 0 0 14px 14px;
+      transition: transform 0.2s ease, border-radius 0.2s ease, height 0.2s ease;
+    }
+
+    .stage.flickering .buddy {
+      animation: buddy-bob 0.28s ease-in-out infinite alternate;
+    }
+
+    .stage.flickering .buddy::before {
+      transform: translate(-2px, -1px);
+    }
+
+    .stage.flickering .buddy::after {
+      transform: translate(2px, -1px);
+    }
+
+    .stage.flickering .buddy-smile {
+      height: 2px;
+      border-radius: 0;
+      bottom: 12px;
+    }
+
+    .stage.result.yes-win .buddy {
+      background: var(--yes-soft);
+      border-color: color-mix(in srgb, var(--yes) 30%, transparent);
+    }
+
+    .stage.result.no-win .buddy {
+      background: var(--no-soft);
+      border-color: color-mix(in srgb, var(--no) 30%, transparent);
+    }
+
+    .stage.result .buddy-smile {
+      transform: scaleX(1.15);
+    }
+
+    @keyframes buddy-bob {
+      from { transform: translateY(0); }
+      to { transform: translateY(-4px); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .stage.flickering .buddy {
+        animation: none;
+      }
+    }
+
+    .buddy-label {
+      font-family: "M PLUS Rounded 1c", sans-serif;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--muted);
+      min-height: 1.1em;
+    }
+
+    .arena {
+      width: 100%;
+      max-width: 320px;
+      aspect-ratio: 1.15;
+      border-radius: 20px;
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(180deg, color-mix(in srgb, var(--panel) 92%, var(--yes-soft)), var(--panel)),
+        var(--panel);
+      display: grid;
+      place-items: center;
+      position: relative;
+      overflow: hidden;
+      transition: background 0.35s ease, box-shadow 0.35s ease;
+    }
+
+    .arena::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0;
+      height: 38%;
+      background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--peach) 8%, transparent));
+      pointer-events: none;
+    }
+
+    .stage.flickering .arena {
+      box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--peach) 25%, transparent);
+    }
+
+    .stage.result.yes-win .arena {
+      background: linear-gradient(180deg, var(--yes-soft), var(--panel));
+      box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--yes) 20%, transparent);
+    }
+
+    .stage.result.no-win .arena {
+      background: linear-gradient(180deg, var(--no-soft), var(--panel));
+      box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--no) 20%, transparent);
+    }
+
+    .choice {
+      position: relative;
+      z-index: 1;
+      font-family: "M PLUS Rounded 1c", sans-serif;
+      font-size: clamp(3rem, 15vw, 4.5rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      transition: color 0.05s ease, transform 0.1s ease;
+      user-select: none;
+    }
+
+    .choice.yes { color: var(--yes); }
+    .choice.no { color: var(--no); }
+    .choice.idle { color: color-mix(in srgb, var(--muted) 35%, transparent); }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .stage.flickering .choice {
+        animation: choice-pop 0.14s ease-in-out infinite alternate;
+      }
+
+      .stage.result .choice {
+        animation: choice-land 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+    }
+
+    @keyframes choice-pop {
+      from { transform: scale(0.94); }
+      to { transform: scale(1.06); }
+    }
+
+    @keyframes choice-land {
+      0% { transform: scale(1.1); opacity: 0.8; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .stage.flickering .choice,
+      .stage.result .choice {
+        animation: none;
+      }
+    }
+
+    .hint {
+      font-size: 0.92rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .hint strong {
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    .quote-wrap {
+      min-height: 0;
+    }
+
+    .quote {
+      position: relative;
+      font-size: 0.92rem;
+      font-weight: 500;
+      line-height: 1.5;
+      color: var(--ink);
+      background: var(--peach-soft);
+      border: 1px solid color-mix(in srgb, var(--peach) 22%, transparent);
+      border-radius: 18px;
+      padding: 0.85rem 1rem;
+      opacity: 0;
+      transform: translateY(6px) scale(0.98);
+      transition:
+        opacity 0.35s ease,
+        transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+        background 0.3s ease,
+        border-color 0.3s ease;
+    }
+
+    .quote::after {
+      content: "";
+      position: absolute;
+      top: -7px;
+      left: 1.4rem;
+      width: 14px;
+      height: 14px;
+      background: inherit;
+      border-left: inherit;
+      border-top: inherit;
+      transform: rotate(45deg);
+    }
+
+    .finished .quote:not(:empty) {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    .quote.yes-quote {
+      background: var(--yes-soft);
+      border-color: color-mix(in srgb, var(--yes) 20%, transparent);
+    }
+
+    .quote.no-quote {
+      background: var(--no-soft);
+      border-color: color-mix(in srgb, var(--no) 20%, transparent);
+    }
+
+    .actions {
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    .btn-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+
+    button {
+      font-family: "M PLUS Rounded 1c", sans-serif;
+      font-size: 0.92rem;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      padding: 0.9rem 1rem;
+      border-radius: 16px;
+      transition: transform 0.15s ease, background 0.15s ease;
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+
+    button:focus-visible {
+      outline: 2px solid var(--ink);
+      outline-offset: 2px;
+    }
+
+    #startBtn {
+      background: var(--ink);
+      color: #fff;
+    }
+
+    #startBtn:hover {
+      transform: translateY(-1px);
+    }
+
+    #stopBtn {
+      background: var(--no);
+      color: #fff;
+      display: none;
+    }
+
+    #againBtn {
+      background: var(--panel);
+      color: var(--ink);
+      border: 1px solid var(--line);
+      display: none;
+    }
+
+    .running #startBtn { display: none; }
+    .running #stopBtn { display: block; }
+    .running #againBtn { display: none; }
+
+    .finished #startBtn { display: none; }
+    .finished #stopBtn { display: none; }
+    .finished #againBtn {
+      display: block;
+      grid-column: 1 / -1;
+    }
+
+    .foot {
+      text-align: center;
+      font-size: 0.74rem;
+      color: var(--muted);
+    }
+
+    kbd {
+      font-family: inherit;
+      font-size: 0.7rem;
+      padding: 0.1rem 0.35rem;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      background: color-mix(in srgb, var(--panel) 70%, var(--line));
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <section class="panel" aria-label="Yes or No picker">
+      <div class="top">
+        <div>
+          <h1 class="title">Yes or No</h1>
+          <p class="subtitle">Tiny helper for big tiny decisions.</p>
+        </div>
+        <span class="flip-count" id="counter" aria-live="polite"></span>
+      </div>
+
+      <div class="stage" id="stage">
+        <div class="buddy-wrap">
+          <div class="buddy" aria-hidden="true"><span class="buddy-smile"></span></div>
+          <p class="buddy-label" id="buddyLabel">Ready when you are</p>
+        </div>
+
+        <div class="arena">
+          <p class="choice idle" id="choice" aria-live="polite">?</p>
+        </div>
+      </div>
+
+      <p class="hint" id="hint">Tap <strong>Start</strong> to flip. Tap <strong>Stop</strong> when it feels right.</p>
+
+      <div class="quote-wrap">
+        <blockquote class="quote" id="quote" aria-live="polite"></blockquote>
+      </div>
+
+      <div class="actions">
+        <div class="btn-row">
+          <button type="button" id="startBtn">Start</button>
+          <button type="button" id="stopBtn">Stop</button>
+          <button type="button" id="againBtn">Again</button>
+        </div>
+      </div>
+
+      <p class="foot"><kbd>Space</kbd> works too</p>
+    </section>
+  </div>
+
+  <script>
+    const app = document.getElementById("app");
+    const body = document.body;
+    const stage = document.getElementById("stage");
+    const choice = document.getElementById("choice");
+    const buddyLabel = document.getElementById("buddyLabel");
+    const hint = document.getElementById("hint");
+    const quote = document.getElementById("quote");
+    const counter = document.getElementById("counter");
+    const startBtn = document.getElementById("startBtn");
+    const stopBtn = document.getElementById("stopBtn");
+    const againBtn = document.getElementById("againBtn");
+
+    const LABELS = { yes: "Yes", no: "No" };
+
+    const YES_QUOTES = [
+      "Your future self is nodding aggressively.",
+      "Do it before your brain files a complaint.",
+      "Fortune favors the bold and the slightly unhinged.",
+      "Yes is just no that got tired of waiting.",
+      "The only bad decision is the one you overthink.",
+      "Send it. Regret is tomorrow's problem.",
+      "Your gut said yes. Your gut owns a hoodie.",
+      "Not chaos. Character development.",
+      "Approved by 9 out of 10 imaginary friends.",
+      "Life is short. Click yes on the metaphorical popup.",
+    ];
+
+    const NO_QUOTES = [
+      "Your couch submitted a very compelling counter-offer.",
+      "Plot twist: doing nothing IS the plan.",
+      "The universe whispered maybe nap instead.",
+      "Self-care looks suspiciously like canceling this.",
+      "No is just yes to staying comfy.",
+      "Your wallet just exhaled in relief.",
+      "Bold of you to stop. Wiser, but bold.",
+      "Tomorrow-you will high-five today-you.",
+      "Rejected. Appeal denied. Snack accepted.",
+      "Even magic 8-balls need days off.",
+    ];
+
+    let rafId = null;
+    let lastTick = 0;
+    let flipCount = 0;
+    let current = "yes";
+    let intervalMs = 70;
+    let running = false;
+    let lastQuote = "";
+
+    function pickQuote(list) {
+      if (list.length === 1) return list[0];
+      let picked = list[Math.floor(Math.random() * list.length)];
+      while (picked === lastQuote && list.length > 1) {
+        picked = list[Math.floor(Math.random() * list.length)];
+      }
+      lastQuote = picked;
+      return picked;
+    }
+
+    function clearQuote() {
+      quote.textContent = "";
+      quote.className = "quote";
+    }
+
+    function clearMood() {
+      body.classList.remove("mood-yes", "mood-no");
+    }
+
+    function setChoice(value) {
+      current = value;
+      choice.textContent = LABELS[value];
+      choice.className = "choice " + value;
+    }
+
+    function tick(now) {
+      if (!running) return;
+
+      if (now - lastTick >= intervalMs) {
+        current = current === "yes" ? "no" : "yes";
+        setChoice(current);
+        flipCount += 1;
+        counter.textContent = flipCount + " flip" + (flipCount === 1 ? "" : "s");
+        lastTick = now;
+        intervalMs = Math.max(28, intervalMs - 1.4);
+      }
+
+      rafId = requestAnimationFrame(tick);
+    }
+
+    function start() {
+      running = true;
+      flipCount = 0;
+      intervalMs = 85;
+      lastTick = performance.now();
+
+      app.classList.remove("finished");
+      app.classList.add("running");
+      stage.classList.remove("result", "yes-win", "no-win");
+      stage.classList.add("flickering");
+      clearQuote();
+      clearMood();
+
+      setChoice("yes");
+      counter.textContent = "0 flips";
+      buddyLabel.textContent = "Pick pick pick…";
+      hint.innerHTML = "Going fast now. Tap <strong>Stop</strong> when your tummy says so.";
+
+      rafId = requestAnimationFrame(tick);
+    }
+
+    function stop() {
+      if (!running) return;
+      running = false;
+      cancelAnimationFrame(rafId);
+
+      app.classList.remove("running");
+      app.classList.add("finished");
+      stage.classList.remove("flickering");
+      stage.classList.add("result", current === "yes" ? "yes-win" : "no-win");
+
+      clearMood();
+      body.classList.add(current === "yes" ? "mood-yes" : "mood-no");
+
+      setChoice(current);
+      buddyLabel.textContent = current === "yes" ? "Yay, yes!" : "No it is then!";
+      hint.innerHTML =
+        current === "yes"
+          ? "Got <strong>Yes</strong> after " + flipCount + " flip" + (flipCount === 1 ? "" : "s") + "."
+          : "Got <strong>No</strong> after " + flipCount + " flip" + (flipCount === 1 ? "" : "s") + ".";
+
+      const lines = current === "yes" ? YES_QUOTES : NO_QUOTES;
+      quote.textContent = pickQuote(lines);
+      quote.className = "quote " + (current === "yes" ? "yes-quote" : "no-quote");
+    }
+
+    function reset() {
+      running = false;
+      cancelAnimationFrame(rafId);
+
+      app.classList.remove("running", "finished");
+      stage.classList.remove("flickering", "result", "yes-win", "no-win");
+      clearMood();
+
+      choice.textContent = "?";
+      choice.className = "choice idle";
+      counter.textContent = "";
+      buddyLabel.textContent = "Ready when you are";
+      clearQuote();
+      hint.innerHTML = "Tap <strong>Start</strong> to flip. Tap <strong>Stop</strong> when it feels right.";
+    }
+
+    startBtn.addEventListener("click", start);
+    stopBtn.addEventListener("click", stop);
+    againBtn.addEventListener("click", reset);
+
+    document.addEventListener("keydown", (e) => {
+      if (e.code === "Space") {
+        e.preventDefault();
+        if (running) stop();
+        else if (!app.classList.contains("finished")) start();
+        else reset();
+      }
+    });
+  </script>
+</body>
+</html>
